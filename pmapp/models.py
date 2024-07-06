@@ -1,7 +1,8 @@
 from django.db import models
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
-from .utils import send_notification
+from .utils import send_notification, cache_invalidate
+
 
 
 class Project(models.Model):
@@ -63,3 +64,14 @@ def task_deleted(sender, instance, **kwargs):
 def comment_created(sender, instance, created, **kwargs):
     if created:
         send_notification(f'New comment on task "{instance.task.title}": {instance.content}')
+
+
+@receiver(post_save, sender=Project)
+@receiver(post_delete, sender=Project)
+def project_cache_invalidation(sender, instance, **kwargs):
+    cache_invalidate('project_list')
+
+@receiver(post_save, sender=Task)
+@receiver(post_delete, sender=Task)
+def task_cache_invalidation(sender, instance, **kwargs):
+    cache_invalidate('task_list')
